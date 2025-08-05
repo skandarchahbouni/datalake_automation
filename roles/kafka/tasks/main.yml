@@ -1,0 +1,128 @@
+- name: Install required packages
+  package:
+    name:
+      - java
+      - tar
+    state: present
+
+- name: Download Kafka
+  get_url:
+    url: "{{ kafka_url }}"
+    dest: "{{ kafka_archive }}"
+    mode: '0644'
+
+- name: Create Kafka install directory
+  file:
+    path: "{{ kafka_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Extract Kafka
+  unarchive:
+    src: "{{ kafka_archive }}"
+    dest: "{{ kafka_install_dir }}"
+    remote_src: yes
+    extra_opts: [--strip-components=1]
+
+- name: Create Kafka log directory
+  file:
+    path: "{{ kafka_log_dirs }}"
+    state: directory
+    mode: '0755'
+
+- name: Template Kafka config
+  template:
+    src: ../../templates/kafka/server.properties.j2
+    dest: "{{ kafka_install_dir }}/config/server.properties"
+    mode: '0644'
+
+- name: Check if KAFKA_CLUSTER_ID is already set
+  shell: grep '^KAFKA_CLUSTER_ID=' {{ cluster_id_file }}
+  register: cluster_id_check
+  ignore_errors: yes
+
+- name: Set fact if KAFKA_CLUSTER_ID is already defined
+  set_fact:
+    kafka_cluster_id_exists: "{{ cluster_id_check.rc == 0 }}"
+
+- name: Extract existing KAFKA_CLUSTER_ID from /etc/environment
+  when: kafka_cluster_id_exists
+  shell: grep '^KAFKA_CLUSTER_ID=' {{ cluster_id_file }} | cut -d '=' -f2
+  register: cluster_id_existing
+
+- name: Set kafka_cluster_id fact from existing value
+  when: kafka_cluster_id_exists
+  set_fact:
+    kafka_cluster_id: "{{ cluster_id_existing.stdout }}"
+
+- name: Generate Kafka Cluster ID (only on first node and if not already set)
+  when:
+    - inventory_hostname == groups['kafka'][0]
+    - not kafka_cluster_id_exists
+  block:
+    - name: Generate Cluster ID
+      command: "{{ kafka_install_dir }}/bin/kafka-storage.sh random-uuid"
+      register: cluster_id_raw
+
+    - name: Set Cluster ID fact (only on first node)
+      set_fact:
+        kafka_cluster_id: "{{ cluster_id_raw.stdout }}"
+
+- name: Propagate Kafka Cluster ID to all nodes
+  when: not kafka_cluster_id_exists
+  set_fact:
+    kafka_cluster_id: "{{ hostvars[groups['kafka'][0]].kafka_cluster_id }}"
+
+- name: Save Kafka Cluster ID to /etc/environment
+  when: not kafka_cluster_id_exists
+  lineinfile:
+    path: "{{ cluster_id_file }}"
+    line: "KAFKA_CLUSTER_ID={{ kafka_cluster_id }}"
+    create: yes
+
+- name: Export Kafka Cluster ID in profile.d for interactive sessions
+  when: not kafka_cluster_id_exists
+  copy:
+    dest: /etc/profile.d/kafka_cluster_id.sh
+    content: 'export KAFKA_CLUSTER_ID={{ kafka_cluster_id }}'
+    mode: '0644'
+
+- name: Format Kafka Storage
+  command: "{{ kafka_install_dir }}/bin/kafka-storage.sh format -t {{ kafka_cluster_id }} -c {{ kafka_install_dir }}/config/server.properties"
+  args:
+    creates: "{{ kafka_log_dirs }}/meta.properties"
+
+- name: Create log directory for systemd output
+  file:
+    path: /var/log/kafka
+    state: directory
+    mode: '0755'
+
+- name: Create systemd unit file for Kafka
+  copy:
+    dest: /etc/systemd/system/kafka.service
+    content: |
+      [Unit]
+      Description=Apache Kafka Server
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
+      ExecStop=/opt/kafka/bin/kafka-server-stop.sh
+      Restart=on-failure
+      RestartSec=5s
+      EnvironmentFile=/etc/environment
+      StandardOutput=append:/var/log/kafka/kafka.log
+      StandardError=inherit
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd, enable and start Kafka
+  systemd:
+    name: kafka
+    daemon_reload: yes
+    enabled: yes
+    state: started

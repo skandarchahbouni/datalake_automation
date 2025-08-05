@@ -1,0 +1,8 @@
+---
+# vars file for valkey-sentinels
+sentinel_config_file: /etc/valkey/sentinel.conf
+valkey_port: 6379
+sentinel_port: 26379
+sentinel_mymaster: mymaster
+sentinel_quorum: 2
+master_replica_ipv4: 10.168.212.22

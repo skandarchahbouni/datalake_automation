@@ -1,0 +1,7 @@
+---
+- name: Setup a kafka-connect cluster
+  hosts: kafka
+  become: yes
+
+  roles:
+    - kafka-connect

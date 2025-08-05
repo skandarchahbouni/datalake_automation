@@ -1,0 +1,66 @@
+- name: Cleanup Kafka Cluster
+  hosts: kafka
+  become: yes
+  vars:
+    kafka_install_dir: "/opt/kafka"
+    kafka_log_dirs: "/opt/kafka-logs"
+    kafka_archive: "/tmp/kafka.tgz"
+    cluster_id_file: "/etc/environment"
+    profile_export_file: "/etc/profile.d/kafka_cluster_id.sh"
+    kafka_service_file: "/etc/systemd/system/kafka.service"
+
+  tasks:
+    - name: Stop Kafka service
+      systemd:
+        name: kafka
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Remove Kafka service file
+      file:
+        path: "{{ kafka_service_file }}"
+        state: absent
+
+    - name: Reload systemd to remove Kafka unit
+      systemd:
+        daemon_reload: yes
+
+    - name: Remove Kafka install directory
+      file:
+        path: "{{ kafka_install_dir }}"
+        state: absent
+
+    - name: Remove Kafka log directory
+      file:
+        path: "{{ kafka_log_dirs }}"
+        state: absent
+
+    - name: Remove downloaded Kafka archive
+      file:
+        path: "{{ kafka_archive }}"
+        state: absent
+
+    - name: Remove Kafka system log directory
+      file:
+        path: /var/log/kafka
+        state: absent
+
+    - name: Remove Kafka Cluster ID export file
+      file:
+        path: "{{ profile_export_file }}"
+        state: absent
+
+    - name: Remove KAFKA_CLUSTER_ID line from /etc/environment
+      lineinfile:
+        path: "{{ cluster_id_file }}"
+        regexp: '^KAFKA_CLUSTER_ID='
+        state: absent
+
+    - name: Remove installed packages (optional cleanup)
+      package:
+        name:
+          - java
+          - tar
+        state: absent
+      ignore_errors: yes

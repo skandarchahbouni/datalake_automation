@@ -1,0 +1,17 @@
+---
+# defaults file for kafka-connect
+kafka_version: "4.0.0"
+kafka_scala_version: "2.13"
+kafka_url: "https://dlcdn.apache.org/kafka/{{ kafka_version }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}.tgz"
+kafka_archive: "/tmp/kafka.tgz"
+kafka_install_dir: "/opt/kafka"
+group_id: "mongodb"
+rest_advertised_port: 8083
+plugins_path: "/opt/kafka/plugins"
+kafka_cluster_nodes:
+  - id: 1
+    ip: 10.168.212.22
+  - id: 2
+    ip: 10.168.212.23
+  - id: 3
+    ip: 10.168.212.24

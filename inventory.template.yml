@@ -1,0 +1,53 @@
+all:
+  vars:
+    kafka_version: "4.0.0"
+    kafka_scala_version: "2.13"
+    kafka_install_dir: "/opt/kafka"
+    kafka_log_dirs: "/opt/kafka-logs"
+    kafka_cluster_nodes:
+      - id: 1
+        ip: ...
+      - id: 2
+        ip: ...
+      - id: 3
+        ip: ...
+  children:
+    kafka:
+      hosts:
+        kafka1:
+          ansible_host: ...
+          node_id: 1
+        kafka2:
+          ansible_host: ...
+          node_id: 2
+        kafka3:
+          ansible_host: ...
+          node_id: 3
+    mongodb:
+      hosts:
+        mongodb1:
+          ansible_host: ...
+        mongodb2:
+          ansible_host: ...
+        mongodb3:
+          ansible_host: ...
+
+    valkey_replicas:
+      hosts:
+        replica01:
+          ansible_host: ...
+          valkey_role: "master"
+        replica02:
+          ansible_host: ...
+          valkey_role: "replica"
+        replica03:
+          ansible_host: ...
+          valkey_role: "replica"
+    valkey_sentinels:
+      hosts:
+        sentinel01:
+          ansible_host: ...
+        sentinel02:
+          ansible_host: ...
+        sentinel03:
+          ansible_host: ...

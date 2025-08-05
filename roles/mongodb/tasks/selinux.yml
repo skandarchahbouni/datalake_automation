@@ -1,0 +1,40 @@
+- name: Create MongoDB Yum Repository
+  copy:
+    dest: /etc/yum.repos.d/mongodb-org-8.0.repo
+    content: |
+      [mongodb-org-8.0]
+      name=MongoDB Repository
+      baseurl={{ mongodb_repo_url }}
+      gpgcheck=1
+      enabled=1
+      gpgkey={{ mongodb_gpgkey_url }}
+
+- name: Install MongoDB packages
+  yum:
+    name: mongodb-org
+    state: present
+
+- name: Install SELinux development packages
+  yum:
+    name:
+      - git
+      - make
+      - checkpolicy
+      - policycoreutils
+      - selinux-policy-devel
+    state: present
+
+- name: Clone MongoDB SELinux policy repo
+  git:
+    repo: https://github.com/mongodb/mongodb-selinux
+    dest: /tmp/mongodb-selinux
+    force: yes
+
+- name: Build SELinux module
+  make:
+    chdir: /tmp/mongodb-selinux
+
+- name: Install SELinux module
+  command: make install
+  args:
+    chdir: /tmp/mongodb-selinux

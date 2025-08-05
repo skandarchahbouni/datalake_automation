@@ -1,0 +1,12 @@
+---
+- name: Install and Configure Valkey sentinels for automatic failover
+  hosts: valkey_sentinels
+  become: yes
+
+  vars_prompt:
+    - name: valkey_password
+      prompt: "Enter Valkey password"
+      private: yes
+
+  roles:
+    - valkey-sentinels

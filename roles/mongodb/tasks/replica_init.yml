@@ -1,0 +1,25 @@
+- name: Wait for mongod to be ready
+  wait_for:
+    port: 27017
+    delay: 5
+    timeout: 30
+
+- name: Initiate replica set
+  shell: |
+    mongosh --quiet --eval '
+    rs.initiate({
+      _id: "{{ repl_set_name }}",
+      members: [
+        {% for host in groups["mongodb"] %}
+          { _id: {{ loop.index0 }}, host: "{{ hostvars[host].ansible_host }}:27017" }{{ "," if not loop.last else "" }}
+        {% endfor %}
+      ]
+    })'
+  args:
+    executable: /bin/bash
+  register: rs_output
+  failed_when: "'already initialized' not in rs_output.stderr and rs_output.rc != 0"
+
+- name: Debug output
+  debug:
+    var: rs_output.stdout_lines

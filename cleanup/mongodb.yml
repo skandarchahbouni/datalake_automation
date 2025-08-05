@@ -1,0 +1,68 @@
+---
+- name: Full Cleanup - Uninstall MongoDB from Rocky Linux Hosts
+  hosts: mongodb
+  become: true
+
+  tasks:
+
+    - name: Stop MongoDB service if running
+      service:
+        name: mongod
+        state: stopped
+        enabled: no
+      ignore_errors: true
+
+    - name: Get list of all installed MongoDB packages
+      shell: rpm -qa | grep mongodb-org
+      register: mongodb_packages
+      changed_when: false
+      failed_when: false
+
+    - name: Remove all installed MongoDB packages
+      yum:
+        name: "{{ mongodb_packages.stdout_lines }}"
+        state: absent
+      when: mongodb_packages.stdout_lines | length > 0
+      ignore_errors: true
+
+    - name: Remove MongoDB log directory
+      file:
+        path: /var/log/mongodb
+        state: absent
+
+    - name: Remove MongoDB data directory
+      file:
+        path: /var/lib/mongo
+        state: absent
+
+    - name: Remove MongoDB configuration file
+      file:
+        path: /etc/mongod.conf
+        state: absent
+
+    - name: Remove MongoDB Yum repo file
+      file:
+        path: /etc/yum.repos.d/mongodb-org-8.0.repo
+        state: absent
+
+    - name: Remove MongoDB SELinux module if installed
+      command: semodule -r mongodb
+      register: selinux_remove
+      failed_when: false
+      changed_when: "'does not exist' not in selinux_remove.stderr"
+
+    - name: Remove MongoDB system user (optional)
+      user:
+        name: mongod
+        state: absent
+      ignore_errors: true
+
+    - name: Remove MongoDB group (optional)
+      group:
+        name: mongod
+        state: absent
+      ignore_errors: true
+
+    - name: Clean yum cache (optional)
+      command: yum clean all
+      changed_when: false

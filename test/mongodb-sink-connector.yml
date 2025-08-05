@@ -1,0 +1,5 @@
+- name: Setup MongoDB Sink connector 
+  hosts: mongodb
+  become: true
+  roles:
+    - mongodb-sink-connector

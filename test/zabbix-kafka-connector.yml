@@ -1,0 +1,5 @@
+- name: Install Zabbix Kafka Connector
+  hosts: kafka1
+  become: true
+  roles:
+    - zabbix-kafka-connector

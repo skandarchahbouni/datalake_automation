@@ -1,0 +1,25 @@
+{
+    "name": "zabbix-mongodb-sink-connector",
+    "config": {
+        "connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
+        "tasks.max": "3",
+        "topics": "zabbix.items",
+        "connection.uri": "mongodb://10.168.212.22,10.168.212.23,10.168.212.24:27017/?replicaSet=rs",
+        "database": "zabbix",
+        "collection": "items",
+        "max.batch.size": "512",
+        "max.poll.records": "512",
+        "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+        "key.converter.schemas.enable": "false",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter.schemas.enable": "false",
+        "transforms": "ConvertTimestamp",
+        "transforms.ConvertTimestamp.type": "org.apache.kafka.connect.transforms.TimestampConverter$Value",
+        "transforms.ConvertTimestamp.field": "clock",
+        "transforms.ConvertTimestamp.target.type": "Timestamp",
+        "transforms.ConvertTimestamp.unix.precision": "seconds",
+        "timeseries.timefield": "clock",
+        "timeseries.granularity": "seconds",
+        "timeseries.timefield.auto.convert": "true"
+    }
+}

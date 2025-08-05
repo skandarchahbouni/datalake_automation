@@ -1,0 +1,14 @@
+- name: Setup MongoDB Replica Set
+  hosts: mongodb
+  become: true
+  roles:
+    - mongodb
+
+- name: Initialize Replica Set (only from first node)
+  hosts: mongodb[0]
+  become: true
+  tasks:
+    - name: Run only the replica_init task from mongodb role
+      include_role:
+        name: mongodb
+        tasks_from: replica_init.yml
