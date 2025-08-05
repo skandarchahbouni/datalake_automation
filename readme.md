@@ -1,3 +1,3 @@
-setup ssh keys 
-add inventory.yml
-ansible-playbook -i inventory.yml test/test_mongodb/setup.yml --ask-become-pass
+- setup ssh keys 
+- add inventory.yml
+- ansible-playbook -i inventory.yml test/test_mongodb/setup.yml --ask-become-pass
