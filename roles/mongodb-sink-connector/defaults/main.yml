@@ -1,0 +1,7 @@
+---
+# defaults file for mongodb-sink-connector
+connector_zip: mongodb-kafka-connect-mongodb-2.0.0.zip
+connector_url: "https://github.com/mongodb/mongo-kafka/releases/download/r2.0.0/{{ connector_zip }}"
+unzip_dir: mongodb-kafka-connect-mongodb-2.0.0
+plugin_dir: /opt/kafka/plugins
+kafka_connect_service: kafka-connect  

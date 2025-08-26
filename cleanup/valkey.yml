@@ -1,0 +1,40 @@
+---
+- name: Cleanup Valkey - Stop service and remove all installed/configured components
+  hosts: valkey_replicas
+  become: yes
+
+  tasks:
+
+    - name: Stop and disable Valkey service
+      systemd:
+        name: valkey.service
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Remove Valkey package
+      yum:
+        name: valkey
+        state: absent
+
+    - name: Remove Valkey configuration file
+      file:
+        path: /etc/valkey/valkey.conf
+        state: absent
+
+    - name: Remove Valkey configuration directory
+      file:
+        path: /etc/valkey
+        state: absent
+
+    - name: Remove Valkey data directory
+      file:
+        path: /var/lib/valkey
+        state: absent
+
+    - name: Ensure Valkey port is closed (optional validation)
+      wait_for:
+        port: 6379
+        state: drained
+        timeout: 10
+      ignore_errors: yes

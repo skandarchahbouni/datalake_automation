@@ -1,0 +1,74 @@
+---
+# tasks file for kafka-connect
+- name: Install required packages
+  package:
+    name:
+      - java
+      - tar
+    state: present
+
+- name: Download Kafka
+  get_url:
+    url: "{{ kafka_url }}"
+    dest: "{{ kafka_archive }}"
+    mode: '0644'
+
+- name: Create Kafka install directory
+  file:
+    path: "{{ kafka_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Extract Kafka
+  unarchive:
+    src: "{{ kafka_archive }}"
+    dest: "{{ kafka_install_dir }}"
+    remote_src: yes
+    extra_opts: [--strip-components=1]
+
+- name: Template Kafka-connect config
+  template:
+    src: ../../templates/kafka-connect/connect-distributed.properties.j2
+    dest: "{{ kafka_install_dir }}/config/connect-distributed.properties"
+    mode: '0644'
+
+
+- name: Create plugins directory for systemd output
+  file:
+    path: /opt/kafka/plugins
+    state: directory
+    mode: '0755'
+
+- name: Create log directory for systemd output
+  file:
+    path: /var/log/kafka
+    state: directory
+    mode: '0755'
+
+- name: Create systemd unit file for Kafka
+  copy:
+    dest: /etc/systemd/system/kafka-connect.service
+    content: |
+      [Unit]
+      Description=Kafka-connect service
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/opt/kafka/bin/connect-distributed.sh /opt/kafka/config/connect-distributed.properties
+      ExecStop=sudo /bin/bash -c 'lsof -t -i :8083 | xargs -r kill -9'
+      Restart=on-failure
+      RestartSec=5s
+      StandardOutput=append:/var/log/kafka/kafka-connect.log
+      StandardError=inherit
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd, enable and start Kafka
+  systemd:
+    name: kafka-connect
+    daemon_reload: yes
+    enabled: yes
+    state: started

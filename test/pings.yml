@@ -1,0 +1,8 @@
+---
+- name: Ping all VMs
+  hosts: myvms
+  gather_facts: false
+
+  tasks:
+    - name: Ping remote hosts
+      ansible.builtin.ping:

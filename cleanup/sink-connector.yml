@@ -1,0 +1,58 @@
+- name: Cleanup MongoDB Kafka Connector
+  hosts: kafka
+  become: yes
+  vars:
+    connector_zip: mongodb-kafka-connect-mongodb-2.0.0.zip
+    unzip_dir: mongodb-kafka-connect-mongodb-2.0.0
+    plugin_dir: /opt/kafka/plugins
+    kafka_connect_service: kafka-connect  
+
+  tasks:
+    - name: Remove connector JAR from Kafka plugin directory
+      file:
+        path: "{{ plugin_dir }}/mongo-kafka-connect-2.0.0-confluent.jar"
+        state: absent
+
+    - name: Remove unzipped connector directory
+      file:
+        path: "/tmp/{{ unzip_dir }}"
+        state: absent
+
+    - name: Remove connector ZIP file
+      file:
+        path: "/tmp/{{ connector_zip }}"
+        state: absent
+
+    - name: Restart Kafka Connect service
+      systemd:
+        name: "{{ kafka_connect_service }}"
+        state: restarted
+        enabled: yes
+
+    - name: Wait for Kafka Connect REST API to be available
+      uri:
+        url: http://localhost:8083/
+        method: GET
+        status_code: 200
+      register: result
+      retries: 10
+      delay: 5
+      until: result.status == 200
+
+- name: Remove MongoDB sink connector from Kafka Connect
+  hosts: kafka1
+  become: yes
+  tasks:
+    - name: Get list of connectors
+      uri:
+        url: "http://localhost:8083/connectors"
+        method: GET
+        return_content: yes
+      register: connectors_response
+
+    - name: Remove MongoDB sink connector if present
+      uri:
+        url: "http://localhost:8083/connectors/zabbix-mongodb-sink-connector"
+        method: DELETE
+        status_code: [204, 404]
+      when: "'zabbix-mongodb-sink-connector' in connectors_response.json"

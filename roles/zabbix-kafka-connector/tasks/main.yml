@@ -1,0 +1,42 @@
+---
+# tasks file for zabbix-kafka-connector
+- name: Ensure git and Go are installed
+  ansible.builtin.package:
+    name:
+      - git
+      - go
+    state: present
+
+- name: Clone Kafka Connector repository
+  ansible.builtin.git:
+    repo: https://github.com/skandarchahbouni/kafka-connector.git
+    dest: /opt/kafka-connector
+    version: HEAD
+    force: true
+
+- name: Template kafka_connector.conf
+  ansible.builtin.template:
+    src: kafka_connector.conf.j2
+    dest: /opt/kafka-connector/kafka_connector.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Template build.sh script
+  ansible.builtin.template:
+    src: build.sh.j2
+    dest: /opt/kafka-connector/build.sh
+    mode: '0755'
+
+- name: Template kafka-connector systemd service
+  ansible.builtin.template:
+    src: kafka-connector.service.j2
+    dest: /etc/systemd/system/kafka-connector.service
+    mode: '0644'
+
+- name: Reload systemd and enable kafka-connector service
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: kafka-connector
+    enabled: true
+    state: started

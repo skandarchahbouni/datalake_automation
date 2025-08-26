@@ -1,0 +1,35 @@
+---
+# tasks file for valkey-sentinels
+- name: Install Valkey
+  yum:
+    name: valkey
+    state: present
+    update_cache: yes
+
+- name: Ensure sentinel.conf exists
+  file:
+    path: "{{ sentinel_config_file }}"
+    state: touch
+
+- name: Configure Sentinel
+  lineinfile:
+    path: "{{ sentinel_config_file }}"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: '^protected-mode ', line: "protected-mode no" }
+    - { regexp: '^sentinel monitor ', line: "sentinel monitor {{ sentinel_mymaster }} {{ master_replica_ipv4 }} {{ valkey_port }} {{ sentinel_quorum }}" }
+    - { regexp: '^sentinel auth-pass ', line: "sentinel auth-pass {{ sentinel_mymaster }} {{ valkey_password }}" }
+
+- name: Enable and start Sentinel service
+  systemd:
+    name: valkey-sentinel.service
+    enabled: yes
+    state: started
+
+- name: Wait for Sentinel port
+  wait_for:
+    port: "{{ sentinel_port }}"
+    state: started
+    timeout: 10

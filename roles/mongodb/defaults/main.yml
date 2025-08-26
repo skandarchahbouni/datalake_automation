@@ -1,0 +1,5 @@
+---
+# defaults file for mongodb
+repl_set_name: "rs"
+mongodb_repo_url: "https://repo.mongodb.org/yum/redhat/9/mongodb-org/8.0/x86_64/"
+mongodb_gpgkey_url: "https://pgp.mongodb.com/server-8.0.asc"

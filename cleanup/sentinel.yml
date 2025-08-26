@@ -1,0 +1,31 @@
+---
+- name: Cleanup Valkey Sentinel Installation and Configuration
+  hosts: valkey_sentinels
+  become: yes
+
+  vars:
+    sentinel_config_file: /etc/valkey/sentinel.conf
+    sentinel_port: 26379
+
+  tasks:
+    - name: Stop and disable Sentinel service
+      systemd:
+        name: valkey-sentinel.service
+        state: stopped
+        enabled: no
+
+    - name: Remove Sentinel configuration file
+      file:
+        path: "{{ sentinel_config_file }}"
+        state: absent
+
+    - name: Uninstall Valkey package
+      yum:
+        name: valkey
+        state: absent
+
+    - name: Wait for Sentinel port to be closed
+      wait_for:
+        port: "{{ sentinel_port }}"
+        state: drained
+        timeout: 10

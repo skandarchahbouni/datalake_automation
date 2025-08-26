@@ -1,0 +1,39 @@
+---
+# tasks file for valkey-replica
+- name: Install Valkey and documentation
+  yum:
+    name:
+      - valkey
+    state: present
+    update_cache: yes
+
+- name: Configure Valkey
+  lineinfile:
+    path: "{{ valkey_config_file }}"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: '^bind ', line: "bind 127.0.0.1 {{ ansible_default_ipv4.address }} -::1" }
+    - { regexp: '^protected-mode ', line: "protected-mode no" }
+    - { regexp: '^primaryauth ', line: "primaryauth {{ valkey_password }}" }
+    - { regexp: '^requirepass ', line: "requirepass {{ valkey_password }}" }
+
+- name: Enable and start Valkey service
+  systemd:
+    name: valkey.service
+    enabled: yes
+    state: started
+
+- name: Wait for Valkey port
+  wait_for:
+    port: "{{ valkey_port }}"
+    state: started
+    timeout: 10
+
+- name: Set REPLICAOF on replica nodes
+  when: valkey_role == "replica"
+  shell: >
+    valkey-cli -a "{{ valkey_password }}"
+    REPLICAOF {{ hostvars[groups['all'] | select('search', 'replica01') | first].ansible_default_ipv4.address }} {{ valkey_port }}
+

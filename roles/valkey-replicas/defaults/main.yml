@@ -1,0 +1,4 @@
+---
+# defaults file for valkey-replica
+valkey_config_file: /etc/valkey/valkey.conf
+valkey_port: 6379

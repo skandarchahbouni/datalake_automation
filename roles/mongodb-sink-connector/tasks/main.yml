@@ -1,0 +1,55 @@
+- name: Download MongoDB Kafka connector
+  get_url:
+    url: "{{ connector_url }}"
+    dest: "/tmp/{{ connector_zip }}"
+
+- name: Install unzip (required for extracting .zip files)
+  package:
+    name: unzip
+    state: present
+
+- name: Unzip connector archive
+  unarchive:
+    src: "/tmp/{{ connector_zip }}"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Ensure Kafka plugin directory exists
+  file:
+    path: "{{ plugin_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy connector JAR to Kafka plugin directory
+  copy:
+    src: "/tmp/{{ unzip_dir }}/lib/mongo-kafka-connect-2.0.0-confluent.jar"
+    dest: "{{ plugin_dir }}/mongo-kafka-connect-2.0.0-confluent.jar"
+    remote_src: yes
+    mode: '0644'
+
+- name: Restart Kafka Connect service to load the new plugin
+  systemd:
+    name: "{{ kafka_connect_service }}"
+    state: restarted
+    enabled: yes
+
+- name: Wait for Kafka Connect REST API to be available
+  uri:
+    url: http://localhost:8083/
+    method: GET
+    status_code: 200
+  register: result
+  retries: 10
+  delay: 5
+  until: result.status == 200
+
+- name: Create MongoDB sink connector
+  uri:
+    url: "http://localhost:8083/connectors"
+    method: POST
+    headers:
+      Content-Type: application/json
+    body: "{{ lookup('file', 'files/zabbix-mongodb-sink-connector.json') }}"
+    body_format: json
+    status_code: 201
+  ignore_errors: true

@@ -1,0 +1,40 @@
+- name: Cleanup Kafka Cluster
+  hosts: kafka
+  become: yes
+  vars:
+    kafka_archive: "/tmp/kafka.tgz"
+    kafka_install_dir: "/opt/kafka"
+    log_dir: "/var/log/kafka"
+    kafka_service: "kafka-connect"
+
+  tasks:
+    - name: Stop Kafka Connect service
+      systemd:
+        name: "{{ kafka_service }}"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Remove Kafka systemd service unit file
+      file:
+        path: "/etc/systemd/system/{{ kafka_service }}.service"
+        state: absent
+
+    - name: Reload systemd to apply removal
+      systemd:
+        daemon_reload: yes
+
+    - name: Remove Kafka installation directory
+      file:
+        path: "{{ kafka_install_dir }}"
+        state: absent
+
+    - name: Remove Kafka archive
+      file:
+        path: "{{ kafka_archive }}"
+        state: absent
+
+    - name: Remove Kafka log directory
+      file:
+        path: "{{ log_dir }}"
+        state: absent

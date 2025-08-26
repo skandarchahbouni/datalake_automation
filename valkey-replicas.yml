@@ -1,0 +1,12 @@
+---
+- name: Install and Configure Valkey with replicas
+  hosts: valkey_replicas
+  become: yes
+
+  vars_prompt:
+    - name: valkey_password
+      prompt: "Enter Valkey password"
+      private: yes
+
+  roles:
+    - valkey-replicas

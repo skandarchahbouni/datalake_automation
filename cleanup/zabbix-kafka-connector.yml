@@ -1,0 +1,31 @@
+---
+- name: Cleanup Valkey - Stop service and remove all installed/configured components
+  hosts: kafka1
+  become: yes
+
+  tasks:
+    - name: Stop and disable kafka-connector service
+      ansible.builtin.systemd:
+        name: kafka-connector
+        enabled: false
+        state: stopped
+
+    - name: Remove kafka-connector service file
+      ansible.builtin.file:
+        path: /etc/systemd/system/kafka-connector.service
+        state: absent
+
+    - name: Remove kafka connector directory
+      ansible.builtin.file:
+        path: /opt/kafka-connector
+        state: absent
+
+    - name: Reload systemd daemon after service removal
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Remove git and Go packages
+      ansible.builtin.package:
+        name:
+          - go
+        state: absent

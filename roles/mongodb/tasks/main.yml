@@ -1,0 +1,19 @@
+---
+# tasks file for mongodb
+- name: Include MongoDB installation and config tasks
+  import_tasks: selinux.yml
+
+- name: Deploy custom mongod.conf
+  template:
+    src: ../../templates/mongodb/mongod.conf.j2
+    dest: /etc/mongod.conf
+    owner: mongod
+    group: mongod
+    mode: '0644'
+  notify: Restart MongoDB
+
+- name: Start and enable MongoDB
+  systemd:
+    name: mongod
+    enabled: yes
+    state: started
